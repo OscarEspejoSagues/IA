@@ -1,4 +1,6 @@
 #pragma once
+
+#include <vector>
 #include "Agent.h"
 #include "Vector2D.h"
 
@@ -21,6 +23,10 @@ public:
 	Vector2D Flee(Agent *agent, Agent *target, float dtime);
 	Vector2D Arrive(Agent *agent, Vector2D target, float dtime);
 	Vector2D Pursue (Agent *agent, Agent *target, float dtime);
+	Vector2D Evade(Agent *agent, Agent *target, float dtime);
+	Vector2D Wander(Agent *agent, Vector2D target, float dtime);
 
+	Vector2D SteeringBehavior::Flocking(std::vector<Agent*> agents, Agent* Self, Vector2D Target, float dtime);
 
+	float WanderAngle;
 };
