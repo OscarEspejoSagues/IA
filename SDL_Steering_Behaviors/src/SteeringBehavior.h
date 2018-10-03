@@ -26,7 +26,10 @@ public:
 	Vector2D Evade(Agent *agent, Agent *target, float dtime);
 	Vector2D Wander(Agent *agent, Vector2D target, float dtime);
 
-	Vector2D SteeringBehavior::Flocking(std::vector<Agent*> agents, Agent* Self, Vector2D Target, float dtime);
-
+	Vector2D SteeringBehavior::Flocking(std::vector<Agent*> agents, Agent* Self, int MAX_AGENTS, float dtime);
+	Vector2D SteeringBehavior::Avoidance(std::vector<Agent*> agents, Agent* Self, int W, int H, float dtime);
 	float WanderAngle;
+
+
+
 };

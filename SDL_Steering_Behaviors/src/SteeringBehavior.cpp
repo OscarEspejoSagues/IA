@@ -137,16 +137,29 @@ Vector2D SteeringBehavior::Wander(Agent *agent, Vector2D target, float dtime) {
 	float TargetAngle;
 
 	WanderAngle += RandomBinomial() * WanderMaxAngleChange;
-	TargetAngle = agent->orientation + WanderAngle;
-	float RadianAngle = 2 * PI * (TargetAngle / 360);
 
+	float angleToUpdate = atan2f(agent->velocity.x , agent->velocity.y);
+	float angleDelta = angleToUpdate - WanderAngle;
+
+	if (angleDelta > 180)
+		WanderAngle += 360;
+	else if(angleDelta < -180)
+		WanderAngle -= 360;
+
+	WanderAngle = WanderAngle + 0.9f * (angleToUpdate - WanderAngle);
+	TargetAngle = agent->orientation + WanderAngle; 
+
+	
 	Vector2D CircleCenter, TargetPosition;
 	CircleCenter = agent->position + agent->velocity.Normalize() * WanderOffset;
-	TargetPosition.x = CircleCenter.x + WanderRadius * cos(RadianAngle*DEG2RAD);
-	TargetPosition.y = CircleCenter.y + WanderRadius * sin(RadianAngle*DEG2RAD);
+	TargetPosition.x = CircleCenter.x + WanderRadius * cos(TargetAngle*DEG2RAD);
+	TargetPosition.y = CircleCenter.y + WanderRadius * sin(TargetAngle*DEG2RAD);
 
 
-	draw_circle(TheApp::Instance()->getRenderer(), (float)TargetPosition.x, (float)TargetPosition.y, 100, 255, 0, 0, 255);
+	draw_circle(TheApp::Instance()->getRenderer(), (float)CircleCenter.x, (float)CircleCenter.y, 100, 255, 0, 0, 255);
+	draw_circle(TheApp::Instance()->getRenderer(), (float)TargetPosition.x, (float)TargetPosition.y, 15, 255, 0, 0, 255);
+
+	std::cout << WanderAngle << std::endl;
 
 	TargetPosition *= agent->getMaxVelocity();
 	Vector2D SteeringForce = (TargetPosition - agent->getVelocity());
@@ -156,12 +169,12 @@ Vector2D SteeringBehavior::Wander(Agent *agent, Vector2D target, float dtime) {
 }
 
 
-Vector2D SteeringBehavior::Flocking(std::vector<Agent*> agents, Agent* Self, Vector2D Target, float dtime) {
-	const float K_SEPARATION_FORCE = 0.65f;
-	const float K_COHESION_FORCE = 0.6f;
-	const float K_ALIGNMENT_FORCE = 1.f;
+Vector2D SteeringBehavior::Flocking(std::vector<Agent*> agents, Agent* Self, int MAX_AGENTS, float dtime) {
+	const float K_SEPARATION_FORCE = 0.9f;
+	const float K_COHESION_FORCE = 0.4f;
+	const float K_ALIGNMENT_FORCE = 0.30f;
 
-	const float NEIGHBOR_RADIUS = 120.f;
+	const float NEIGHBOR_RADIUS = 100.f;
 	
 	//Flee 
 	float neighborCountFlee = 0;
@@ -174,7 +187,7 @@ Vector2D SteeringBehavior::Flocking(std::vector<Agent*> agents, Agent* Self, Vec
 	Vector2D averageVelocity, aligmentDirection;
 
 	//FLEE
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < MAX_AGENTS; i++)
 	{
 		if ((agents[i]->position - Self->position).Length() < NEIGHBOR_RADIUS)
 		{
@@ -186,7 +199,7 @@ Vector2D SteeringBehavior::Flocking(std::vector<Agent*> agents, Agent* Self, Vec
 	separationDirection = separationVector.Normalize();
 
 	//SEEK
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < MAX_AGENTS; i++)
 	{
 		if ((agents[i]->position - Self->position).Length() < NEIGHBOR_RADIUS)
 		{
@@ -199,7 +212,7 @@ Vector2D SteeringBehavior::Flocking(std::vector<Agent*> agents, Agent* Self, Vec
 	cohesionDirection = averagePosition.Normalize();
 
 	//ALIGMENT
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < MAX_AGENTS; i++)
 	{
 		if ((agents[i]->position - Self->position).Length() < NEIGHBOR_RADIUS)
 		{
@@ -218,9 +231,38 @@ Vector2D SteeringBehavior::Flocking(std::vector<Agent*> agents, Agent* Self, Vec
 					cohesionDirection * K_COHESION_FORCE + 
 					aligmentDirection * K_ALIGNMENT_FORCE;
 	flockingForce *= 2;
+
 	flockingForce *= Self->getMaxVelocity();
 	Vector2D SteeringForce = (flockingForce - Self->getVelocity());
 	SteeringForce /= Self->getMaxVelocity();
 	return SteeringForce * Self->max_force;
+}
+
+
+
+Vector2D SteeringBehavior::Avoidance(std::vector<Agent*> agents, Agent* Self, int W, int H, float dtime) {
+	//Avoidance
+	Vector2D desiredVelocity, AvoidanceDirection;
+	//Avoidance
+	if (Self->position.x < 200.f){
+		desiredVelocity.x = Self->getMaxVelocity();
+	}
+	else if (Self->position.x > W - 200.f){
+		desiredVelocity.x = -Self->getMaxVelocity();
+	}
+	if (Self->position.y < 200.f){
+		desiredVelocity.y = Self->getMaxVelocity();
+	}
+	else if (Self->position.y > H - 200.f){
+		desiredVelocity.y = -Self->getMaxVelocity();
+	}
+	if (desiredVelocity.Length() > 0.0f)
+	{
+		AvoidanceDirection = desiredVelocity - Self->getMaxVelocity();
+		AvoidanceDirection /= Self->getMaxVelocity();
+		AvoidanceDirection *= 100;
+	}
+	
+	return AvoidanceDirection;
 }
 
